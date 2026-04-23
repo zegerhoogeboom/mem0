@@ -3,6 +3,16 @@ import { DEFAULT_MEMORY_CONFIG } from "./defaults";
 
 export class ConfigManager {
   static mergeConfig(userConfig: Partial<MemoryConfig> = {}): MemoryConfig {
+    const sqliteHistoryConfig =
+      userConfig.historyStore?.provider === "sqlite"
+        ? userConfig.historyStore.config
+        : undefined;
+    const defaultHistoryStore = DEFAULT_MEMORY_CONFIG.historyStore!;
+    const defaultSqliteHistoryConfig =
+      defaultHistoryStore.provider === "sqlite"
+        ? defaultHistoryStore.config
+        : undefined;
+
     const mergedConfig = {
       version: userConfig.version || DEFAULT_MEMORY_CONFIG.version,
       embedder: {
@@ -130,11 +140,10 @@ export class ConfigManager {
       },
       historyDbPath:
         userConfig.historyDbPath ||
-        userConfig.historyStore?.config?.historyDbPath ||
-        DEFAULT_MEMORY_CONFIG.historyStore?.config?.historyDbPath,
+        sqliteHistoryConfig?.historyDbPath ||
+        defaultSqliteHistoryConfig?.historyDbPath,
       customInstructions: userConfig.customInstructions,
       historyStore: (() => {
-        const defaultHistoryStore = DEFAULT_MEMORY_CONFIG.historyStore!;
         const historyProvider =
           userConfig.historyStore?.provider || defaultHistoryStore.provider;
         const isSqlite = historyProvider.toLowerCase() === "sqlite";
@@ -158,6 +167,6 @@ export class ConfigManager {
     };
 
     // Validate the merged config
-    return MemoryConfigSchema.parse(mergedConfig);
+    return MemoryConfigSchema.parse(mergedConfig) as MemoryConfig;
   }
 }

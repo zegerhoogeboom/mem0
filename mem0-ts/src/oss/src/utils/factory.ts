@@ -25,9 +25,15 @@ import { DeepSeekLLM } from "../llms/deepseek";
 import { SupabaseDB } from "../vector_stores/supabase";
 import { SQLiteManager } from "../storage/SQLiteManager";
 import { MemoryHistoryManager } from "../storage/MemoryHistoryManager";
+import { PostgresHistoryManager } from "../storage/PostgresHistoryManager";
 import { SupabaseHistoryManager } from "../storage/SupabaseHistoryManager";
 import { HistoryManager } from "../storage/base";
 import { GoogleEmbedder } from "../embeddings/google";
+import {
+  PostgresHistoryStoreConfig,
+  SQLiteHistoryStoreConfig,
+  SupabaseHistoryStoreConfig,
+} from "../types";
 import { GoogleLLM } from "../llms/google";
 import { AzureOpenAILLM } from "../llms/azure";
 import { AzureOpenAIEmbedder } from "../embeddings/azure";
@@ -120,13 +126,22 @@ export class HistoryManagerFactory {
   static create(provider: string, config: HistoryStoreConfig): HistoryManager {
     switch (provider.toLowerCase()) {
       case "sqlite":
-        return new SQLiteManager(config.config.historyDbPath || ":memory:");
-      case "supabase":
+        return new SQLiteManager(
+          (config as SQLiteHistoryStoreConfig).config.historyDbPath ||
+            ":memory:",
+        );
+      case "supabase": {
+        const supabaseConfig = (config as SupabaseHistoryStoreConfig).config;
         return new SupabaseHistoryManager({
-          supabaseUrl: config.config.supabaseUrl || "",
-          supabaseKey: config.config.supabaseKey || "",
-          tableName: config.config.tableName || "memory_history",
+          supabaseUrl: supabaseConfig.supabaseUrl,
+          supabaseKey: supabaseConfig.supabaseKey,
+          tableName: supabaseConfig.tableName || "memory_history",
         });
+      }
+      case "postgres":
+        return new PostgresHistoryManager(
+          (config as PostgresHistoryStoreConfig).config,
+        );
       case "memory":
         return new MemoryHistoryManager();
       default:

@@ -133,6 +133,11 @@ jest.mock("../src/storage/SupabaseHistoryManager", () => ({
     .fn()
     .mockImplementation((config) => ({ type: "supabase-history", config })),
 }));
+jest.mock("../src/storage/PostgresHistoryManager", () => ({
+  PostgresHistoryManager: jest
+    .fn()
+    .mockImplementation((config) => ({ type: "postgres-history", config })),
+}));
 
 import {
   EmbedderFactory,
@@ -282,6 +287,18 @@ describe("HistoryManagerFactory", () => {
     ).not.toThrow();
   });
 
+  test("creates postgres history manager", () => {
+    const config: HistoryStoreConfig = {
+      provider: "postgres",
+      config: {
+        connectionString: "postgresql://user:pass@localhost:5432/test",
+      },
+    };
+    expect(() =>
+      HistoryManagerFactory.create("postgres", config),
+    ).not.toThrow();
+  });
+
   test("creates memory history manager", () => {
     const config: HistoryStoreConfig = {
       provider: "memory",
@@ -291,7 +308,10 @@ describe("HistoryManagerFactory", () => {
   });
 
   test("throws for unsupported provider", () => {
-    const config: HistoryStoreConfig = { provider: "bad", config: {} };
+    const config = {
+      provider: "bad",
+      config: {},
+    } as unknown as HistoryStoreConfig;
     expect(() => HistoryManagerFactory.create("bad", config)).toThrow(
       "Unsupported history store provider: bad",
     );

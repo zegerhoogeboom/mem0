@@ -143,9 +143,45 @@ await memory.reset();
 
 ## Use a custom history store
 
-The Node SDK supports Supabase (or other providers) when you need serverless-friendly history storage.
+The Node SDK supports these history providers:
+
+- `sqlite` (default) for local file-backed history via `historyDbPath` or `historyStore.config.historyDbPath`
+- `postgres` for direct PostgreSQL-backed history with either a connection string or discrete connection fields
+- `supabase` for history stored in a Supabase table
+- `memory` for ephemeral in-process history that disappears when the process exits
+
+Set `disableHistory: true` if you do not want Mem0 to persist edit history at all.
 
 <CodeGroup>
+```ts SQLite provider
+import { Memory } from "mem0ai/oss";
+
+const memory = new Memory({
+  historyStore: {
+    provider: "sqlite",
+    config: {
+      historyDbPath: "memory.db"
+    }
+  }
+});
+```
+
+```ts Postgres provider
+import { Memory } from "mem0ai/oss";
+
+const memory = new Memory({
+  historyStore: {
+    provider: "postgres",
+    config: {
+      connectionString: process.env.POSTGRES_URL || "",
+      schema: "mem0",
+      tableName: "memory_history",
+      messagesTableName: "messages"
+    }
+  }
+});
+```
+
 ```ts Supabase provider
 import { Memory } from "mem0ai/oss";
 
@@ -228,6 +264,29 @@ Mem0 offers granular configuration across vector stores, LLMs, embedders, and hi
 | `provider` | History provider | `"sqlite"` |
 | `config` | Provider configuration | `undefined` |
 | `disableHistory` | Disable history store | `false` |
+  </Accordion>
+  <Accordion title="History providers">
+| Provider | When to use it | Config keys |
+| --- | --- | --- |
+| `sqlite` | Default local development and file-backed history | `historyDbPath` |
+| `postgres` | Persist history in PostgreSQL without Supabase | `connectionString` or `host`, `port`, `user`, `password`, `database` / `dbname`; optional `schema`, `tableName`, `messagesTableName`, `ssl` |
+| `supabase` | Use a Supabase table for memory history | `supabaseUrl`, `supabaseKey`, optional `tableName` |
+| `memory` | Ephemeral tests or short-lived processes | none |
+  </Accordion>
+  <Accordion title="Postgres history config">
+| Parameter | Description | Default |
+| --- | --- | --- |
+| `connectionString` | Full PostgreSQL connection string. Use this or the discrete connection fields below. | `undefined` |
+| `host` | PostgreSQL host | `undefined` |
+| `port` | PostgreSQL port | `5432` |
+| `user` | PostgreSQL user | `undefined` |
+| `password` | PostgreSQL password | `undefined` |
+| `database` | PostgreSQL database name | `undefined` |
+| `dbname` | Alias for `database` | `undefined` |
+| `schema` | Schema where Mem0 creates history tables | `"public"` |
+| `tableName` | History table name | `"memory_history"` |
+| `messagesTableName` | Table for recent conversation context | `"messages"` |
+| `ssl` | Optional `pg` SSL configuration | `undefined` |
   </Accordion>
   <Accordion title="Complete config example">
 ```ts

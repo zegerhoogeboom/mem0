@@ -30,15 +30,62 @@ export interface VectorStoreConfig {
   [key: string]: any;
 }
 
-export interface HistoryStoreConfig {
-  provider: string;
+export interface SQLiteHistoryStoreConfig {
+  provider: "sqlite";
   config: {
     historyDbPath?: string;
-    supabaseUrl?: string;
-    supabaseKey?: string;
+  };
+}
+
+export interface SupabaseHistoryStoreConfig {
+  provider: "supabase";
+  config: {
+    supabaseUrl: string;
+    supabaseKey: string;
     tableName?: string;
   };
 }
+
+interface PostgresHistoryBaseConfig {
+  schema?: string;
+  tableName?: string;
+  messagesTableName?: string;
+  ssl?: any;
+}
+
+type PostgresHistoryConnectionStringConfig = PostgresHistoryBaseConfig & {
+  connectionString: string;
+};
+
+type PostgresHistoryDiscreteConfig = PostgresHistoryBaseConfig & {
+  host: string;
+  port?: number;
+  user: string;
+  password?: string;
+} & (
+    | { database: string; dbname?: string }
+    | { database?: string; dbname: string }
+  );
+
+export type PostgresHistoryConfig =
+  | PostgresHistoryConnectionStringConfig
+  | PostgresHistoryDiscreteConfig;
+
+export interface PostgresHistoryStoreConfig {
+  provider: "postgres";
+  config: PostgresHistoryConfig;
+}
+
+export interface MemoryHistoryStoreConfig {
+  provider: "memory";
+  config: Record<string, never>;
+}
+
+export type HistoryStoreConfig =
+  | SQLiteHistoryStoreConfig
+  | SupabaseHistoryStoreConfig
+  | PostgresHistoryStoreConfig
+  | MemoryHistoryStoreConfig;
 
 export interface LLMConfig {
   provider?: string;
@@ -134,10 +181,55 @@ export const MemoryConfigSchema = z.object({
   historyDbPath: z.string().optional(),
   customInstructions: z.string().optional(),
   historyStore: z
-    .object({
-      provider: z.string(),
-      config: z.record(z.string(), z.any()),
-    })
+    .discriminatedUnion("provider", [
+      z.object({
+        provider: z.literal("sqlite"),
+        config: z.object({
+          historyDbPath: z.string().optional(),
+        }),
+      }),
+      z.object({
+        provider: z.literal("supabase"),
+        config: z.object({
+          supabaseUrl: z.string(),
+          supabaseKey: z.string(),
+          tableName: z.string().optional(),
+        }),
+      }),
+      z.object({
+        provider: z.literal("postgres"),
+        config: z.union([
+          z.object({
+            connectionString: z.string(),
+            schema: z.string().optional(),
+            tableName: z.string().optional(),
+            messagesTableName: z.string().optional(),
+            ssl: z.any().optional(),
+          }),
+          z
+            .object({
+              host: z.string(),
+              port: z.number().optional(),
+              user: z.string(),
+              password: z.string().optional(),
+              database: z.string().optional(),
+              dbname: z.string().optional(),
+              schema: z.string().optional(),
+              tableName: z.string().optional(),
+              messagesTableName: z.string().optional(),
+              ssl: z.any().optional(),
+            })
+            .refine((value) => value.database || value.dbname, {
+              message:
+                "Postgres history store requires either database or dbname when using host/user config",
+            }),
+        ]),
+      }),
+      z.object({
+        provider: z.literal("memory"),
+        config: z.object({}),
+      }),
+    ])
     .optional(),
   disableHistory: z.boolean().optional(),
 });

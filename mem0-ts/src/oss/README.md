@@ -6,7 +6,7 @@ A TypeScript implementation of the mem0 memory system, using OpenAI for embeddin
 
 - Memory storage and retrieval using vector embeddings
 - Fact extraction from text using GPT-4
-- SQLite-based history tracking
+- Pluggable history tracking with SQLite, Postgres, Supabase, or in-memory storage
 - Optional graph-based memory relationships
 - TypeScript type safety
 - Built-in OpenAI integration with default configuration
@@ -106,6 +106,37 @@ The memory system comes with sensible defaults:
 - SQLite for history tracking
 
 You only need to provide API keys - all other settings are optional.
+
+### History Providers
+
+The OSS package supports these history providers:
+
+- `sqlite` (default): file-backed local history via `historyDbPath`
+- `postgres`: direct PostgreSQL-backed history
+- `supabase`: history stored in a Supabase table
+- `memory`: in-process ephemeral history
+
+Use `disableHistory: true` to turn history off entirely.
+
+```typescript
+const memory = new Memory({
+  historyStore: {
+    provider: "postgres",
+    config: {
+      connectionString: process.env.POSTGRES_URL || "",
+      schema: "mem0",
+      tableName: "memory_history",
+      messagesTableName: "messages",
+    },
+  },
+});
+```
+
+Postgres history config supports:
+
+- `connectionString`
+- `host`, `port`, `user`, `password`, `database` or `dbname`
+- optional `schema`, `tableName`, `messagesTableName`, `ssl`
 
 ### Methods
 

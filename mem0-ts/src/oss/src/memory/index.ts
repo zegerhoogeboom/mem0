@@ -490,7 +490,7 @@ export class Memory {
 
   static fromConfig(configDict: Record<string, any>): Memory {
     try {
-      const config = MemoryConfigSchema.parse(configDict);
+      const config = MemoryConfigSchema.parse(configDict) as MemoryConfig;
       return new Memory(config);
     } catch (e) {
       console.error("Configuration validation error:", e);
